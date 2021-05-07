@@ -1,0 +1,65 @@
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: compositepostgresqlinstances.gcp.database.example.org
+  labels:
+    provider: crossplane-provider-gcp
+    guide: quickstart
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: database.example.org/v1alpha1
+    kind: CompositePostgreSQLInstance
+  resources:
+    - name: cloudsqlinstance
+      base:
+        apiVersion: database.gcp.crossplane.io/v1beta1
+        kind: CloudSQLInstance
+        spec:
+          forProvider:
+            databaseVersion: POSTGRES_9_6
+            settings:
+              tier: db-custom-1-3840
+              dataDiskType: PD_SSD
+              ipConfiguration:
+                authorizedNetworks:
+                  - value: "0.0.0.0/0"
+          writeConnectionSecretToRef:
+            namespace: crossplane-system
+      patches:
+        - fromFieldPath: "metadata.uid"
+          toFieldPath: "spec.writeConnectionSecretToRef.name"
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-postgresql"
+        - fromFieldPath: "spec.parameters.storageGB"
+          toFieldPath: "spec.forProvider.settings.dataDiskSizeGb"
+        - type: FromConstantValue
+          constantValue:
+            type: "string"
+            string: "us-west1"
+          toFieldPath: "spec.forProvider.region"
+        - type: FromConstantValue
+          constantValue:
+            type: "string"
+            string: "constant annotation"
+          toFieldPath: "metadata.annotations[test/constant-value]"
+        - type: FromConstantValue
+          constantValue:
+            type: "bool"
+            bool: true
+          toFieldPath: "spec.forProvider.settings.ipConfiguration.ipv4Enabled"
+        - type: FromConstantValue
+          constantValue:
+            type: "int"
+            int: 100
+          toFieldPath: "spec.forProvider.settings.maxDiskSize"
+      connectionDetails:
+        - fromConnectionSecretKey: username
+        - fromConnectionSecretKey: password
+        - fromConnectionSecretKey: endpoint
+        - type: FromValue
+          name: port
+          value: "5432"

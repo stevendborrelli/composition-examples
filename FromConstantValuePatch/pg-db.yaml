@@ -1,0 +1,15 @@
+apiVersion: database.example.org/v1alpha1
+kind: PostgreSQLInstance
+metadata:
+  name: cv-test-db
+  namespace: default
+  labels:
+    region: us-central1
+spec:
+  parameters:
+    storageGB: 20
+  compositionSelector:
+    matchLabels:
+      provider: crossplane-provider-gcp
+  writeConnectionSecretToRef:
+    name: db-conn
